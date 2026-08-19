@@ -9,6 +9,7 @@ public class FirstPersonLook : MonoBehaviour
 
     Vector2 velocity;
     Vector2 frameVelocity;
+    Rigidbody characterRigidbody;
 
 
     void Reset()
@@ -21,6 +22,7 @@ public class FirstPersonLook : MonoBehaviour
     {
         // Lock the mouse cursor to the game screen.
         Cursor.lockState = CursorLockMode.Locked;
+        characterRigidbody = character.GetComponent<Rigidbody>();
     }
 
     void Update()
@@ -32,8 +34,26 @@ public class FirstPersonLook : MonoBehaviour
         velocity += frameVelocity;
         velocity.y = Mathf.Clamp(velocity.y, -90, 90);
 
-        // Rotate camera up-down and controller left-right from velocity.
+        // Camera pitch: no es un Rigidbody, rotarla directo en Update esta bien.
         transform.localRotation = Quaternion.AngleAxis(-velocity.y, Vector3.right);
-        character.localRotation = Quaternion.AngleAxis(velocity.x, Vector3.up);
+
+        // El yaw del personaje (character) SI es un Rigidbody -- si no tiene uno,
+        // se mantiene el comportamiento original (rotarlo directo) por compatibilidad.
+        if (characterRigidbody == null)
+            character.localRotation = Quaternion.AngleAxis(velocity.x, Vector3.up);
+    }
+
+    void FixedUpdate()
+    {
+        // Rotar el yaw del personaje ACA (via Rigidbody.MoveRotation) en vez de en
+        // Update con transform.localRotation directo: cuando el Rigidbody tiene
+        // Interpolation activado, Unity asume que SOLO el motor de fisica toca su
+        // transform entre pasos de FixedUpdate. Pisarlo a mano en Update() (como
+        // hacia antes) confunde esa interpolacion -- se notaba como jitter de
+        // posicion en cualquier script que leyera el transform del personaje
+        // (por ejemplo, el que sigue al jugador para la lampara flotante),
+        // especificamente al girar.
+        if (characterRigidbody != null)
+            characterRigidbody.MoveRotation(Quaternion.AngleAxis(velocity.x, Vector3.up));
     }
 }

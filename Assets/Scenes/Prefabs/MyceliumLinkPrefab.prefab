@@ -48,11 +48,14 @@ MonoBehaviour:
   wobbleAmount: 0.42
   noiseScale: 1.07
   lineWidth: 0.1
-  branchCount: 50
+  branchCount: 54
   branchLengthMin: 0.62
-  branchLengthMax: 2.18
-  branchWidth: 0.08
+  branchLengthMax: 2.3
+  branchWidth: 0.12
   branchAngleMin: 12
   branchAngleMax: 40
   growDuration: 3.5
+  branchExtraGrowTime: 1
+  branchGrowDuration: 1.5
+  branchGrowthSharpness: 6
   lineMaterial: {fileID: 2100000, guid: 5a9633ce2ae2b92409453cf4c3654608, type: 2}

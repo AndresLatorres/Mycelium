@@ -77,10 +77,32 @@ public class NetworkGenerator : MonoBehaviour
     public Color gazeBackgroundColor = new Color(0f, 0f, 0f, 0.55f);
     public float gazeBackgroundPadding = 0.15f;
     public float gazeBackgroundZOffset = 0.02f;
+    [Tooltip("Cuanto se difumina el borde del fondo (0 = corte duro, 0.5 = maximo)")]
+    [Range(0f, 0.5f)]
+    public float gazeBackgroundFeatherAmount = 0.3f;
+    [Tooltip("Forma del difuminado del fondo (0 = rectangular con esquinas suaves, 1 = ovalada)")]
+    [Range(0f, 1f)]
+    public float gazeBackgroundFeatherShape = 0.35f;
 
     [Header("Camino de micelio (visual)")]
     [Tooltip("Prefab vacio con el componente MyceliumLink y su material asignado. Si se deja vacio, no se dibujan caminos.")]
     public GameObject myceliumLinkPrefab;
+
+    [Header("Brotes de micelio del origen (aspecto 'colonia en plato de petri')")]
+    [Tooltip("Cuantos hilos cortos SIN conectar a ningun nodo se generan desde el centro de CADA cluster nuevo, repartidos en todas direcciones. Asi el origen se ve como una colonia creciendo tenga 1 nodo conectado o 'objectsPerCluster' -- no dependen de cuantos nodos se lograron ubicar. 0 = desactivado")]
+    public int petriSproutCount = 6;
+    [Tooltip("Largo minimo de cada brote decorativo")]
+    public float petriSproutLengthMin = 1f;
+    [Tooltip("Largo maximo de cada brote decorativo")]
+    public float petriSproutLengthMax = 2.5f;
+    [Tooltip("Cuanto puede variar (grados) cada brote respecto a su angulo parejo alrededor del circulo, para que no se vea mecanico")]
+    public float petriSproutAngleJitter = 15f;
+
+    [Header("Color por colonia (cada origen nuevo tiene un tinte ligeramente distinto)")]
+    [Tooltip("Cuanto puede variar el TONO (hue) del micelio de cada colonia nueva respecto al color original del material del prefab. 0 = todas iguales, 0.5 = variacion maxima")]
+    [Range(0f, 0.5f)] public float colonyHueVariation = 0.08f;
+    [Tooltip("Cuanto puede variar la saturacion de cada colonia nueva (+/- este valor)")]
+    [Range(0f, 0.5f)] public float colonySaturationVariation = 0.1f;
 
     [Header("Evitar superposicion")]
     [Tooltip("Distancia minima entre dos nodos. Si un nodo nuevo cae mas cerca que esto de uno existente, se reutiliza (si comparten tag) o se reubica (si no).")]
@@ -118,6 +140,13 @@ public class NetworkGenerator : MonoBehaviour
 
     private Transform wanderPlayerTransform;
     private float wanderCheckTimer = 0f;
+
+    // Se incrementa una vez por cada GenerateCluster y una vez por cada conector suelto
+    // -- identifica la "tanda" de generacion de cada nodo (ver SpawnedNode.GenerationId).
+    private int nextGenerationId = 0;
+
+    private Color originalMyceliumColor = Color.white;
+    private bool originalMyceliumColorCached = false;
 
     private void Start()
     {
@@ -213,16 +242,43 @@ public class NetworkGenerator : MonoBehaviour
     /// Instancia un grupo circular de objetos que comparten "tag" alrededor de "center".
     /// "sourceData" (opcional) es el objeto que origino este grupo, para excluirlo de la seleccion.
     /// "centerNode" (opcional) es el nodo conector que esta en el centro, para conectar el
-    /// anillo con el hilo de micelio; si es null (primer cluster) se conecta solo por posicion.
+    /// anillo con el hilo de micelio; si es null, es un origen nuevo de verdad (cluster
+    /// inicial, o generado porque el jugador se alejo) -- en ese caso, si "tag" tiene un
+    /// NetworkTag.centerNodeOverride asignado, ESE objeto se instancia en el centro (ver
+    /// mas abajo); si no, el centro queda vacio como antes.
     /// </summary>
     public void GenerateCluster(NetworkTag tag, Vector3 center, TaggedObjectData sourceData, SpawnedNode centerNode, bool forceEvenIfVisited = false)
     {
         if (visitedTags.Contains(tag) && !forceEvenIfVisited) return;
         visitedTags.Add(tag);
 
+        // Todos los nodos de este anillo comparten "nivel" (para no conectarse entre si
+        // en LinkToNearbySharedTagNodes) y color de colonia: si hay centerNode, es una
+        // CONTINUACION de una colonia existente (hereda su color); si no, es un origen
+        // nuevo (cluster inicial, o uno generado porque el jugador se alejo demasiado) y
+        // le toca un color nuevo, con una variacion aleatoria de tono.
+        int generationId = nextGenerationId++;
+        Color colonyColor = centerNode != null ? centerNode.ColonyColor : GenerateColonyColor();
+
+        // Si el tag tiene un objeto especial para el centro (NetworkTag.centerNodeOverride)
+        // Y este cluster es un origen nuevo de verdad (sin centerNode existente -- el
+        // cluster inicial, o uno generado porque el jugador se alejo), se instancia ESE
+        // objeto especial justo en "center". De ahi en mas se lo trata como el centro real
+        // del cluster: los hilos de micelio del anillo se conectan a el como a un nodo
+        // real (CreateMyceliumLink), no a un punto vacio. Si el tag no tiene override, o
+        // ya habia un centerNode (cluster generado alrededor de un conector existente),
+        // sigue funcionando exactamente igual que antes.
+        SpawnedNode effectiveCenterNode = centerNode;
+        if (effectiveCenterNode == null && tag.centerNodeOverride != null)
+        {
+            effectiveCenterNode = PlaceNode(tag.centerNodeOverride, tag, center, center, isConnector: false, generationId, colonyColor);
+        }
+
         List<TaggedObjectData> pool = database.GetByTag(tag);
         if (sourceData != null)
             pool = pool.Where(o => o != sourceData).ToList();
+        if (tag.centerNodeOverride != null)
+            pool = pool.Where(o => o != tag.centerNodeOverride).ToList(); // no lo sumes de nuevo como nodo del anillo
 
         if (pool.Count == 0)
         {
@@ -260,23 +316,50 @@ public class NetworkGenerator : MonoBehaviour
             ) * clusterRadius;
 
             Vector3 desiredPos = center + offset;
-            SpawnedNode placed = PlaceNode(selection[i], tag, desiredPos, center, isConnector: false);
+            SpawnedNode placed = PlaceNode(selection[i], tag, desiredPos, center, isConnector: false, generationId, colonyColor);
             if (placed == null) continue; // no se pudo ubicar sin superponerse, se salteo
 
-            if (centerNode != null)
+            if (effectiveCenterNode != null)
             {
-                CreateMyceliumLink(centerNode, placed);
+                CreateMyceliumLink(effectiveCenterNode, placed);
             }
             else
             {
-                // Primer cluster de la red: no hay centerNode, pero igual registramos
-                // el hilo para que, si "placed" mas adelante genera un conector, este
-                // hilo se aplane en vez de quedar redondeado para siempre.
-                MyceliumLink rootLink = CreateMyceliumLinkAt(center, placed.transform.position);
+                // No hay ningun nodo real en el centro (ni centerNode existente, ni
+                // centerNodeOverride para este tag) -- igual registramos el hilo para
+                // que, si "placed" mas adelante genera un conector, este hilo se
+                // aplane en vez de quedar redondeado para siempre.
+                MyceliumLink rootLink = CreateMyceliumLinkAt(center, placed.transform.position, colonyColor);
                 if (rootLink != null) incomingLinkAtNode[placed] = rootLink;
             }
 
             LinkToNearbySharedTagNodes(placed);
+        }
+
+        SpawnPetriSprouts(center, colonyColor);
+    }
+
+    /// <summary>
+    /// Genera hilos de micelio cortos SIN conectar a ningun nodo real, repartidos en
+    /// todas direcciones alrededor de "center". Se llama al final de CADA cluster
+    /// generado (tenga 1 nodo conectado o "objectsPerCluster"), asi el origen siempre
+    /// se ve como una colonia creciendo en un plato de petri, independientemente de
+    /// cuantos nodos se lograron ubicar. No se registran en "incomingLinkAtNode" (no
+    /// hay ningun SpawnedNode en la punta) -- se quedan con la punta redondeada para
+    /// siempre, que es lo correcto para un brote que no continua a ningun lado.
+    /// </summary>
+    private void SpawnPetriSprouts(Vector3 center, Color colonyColor)
+    {
+        if (petriSproutCount <= 0 || myceliumLinkPrefab == null) return;
+
+        for (int i = 0; i < petriSproutCount; i++)
+        {
+            float baseAngle = (360f / petriSproutCount) * i;
+            float angle = baseAngle + Random.Range(-petriSproutAngleJitter, petriSproutAngleJitter);
+            float length = Random.Range(petriSproutLengthMin, petriSproutLengthMax);
+
+            Vector3 dir = new Vector3(Mathf.Cos(angle * Mathf.Deg2Rad), 0f, Mathf.Sin(angle * Mathf.Deg2Rad));
+            CreateMyceliumLinkAt(center, center + dir * length, colonyColor);
         }
     }
 
@@ -289,7 +372,7 @@ public class NetworkGenerator : MonoBehaviour
     ///  - Si esta demasiado cerca de uno que NO comparte tag, empuja la posicion hacia
     ///    afuera y reintenta unas cuantas veces antes de rendirse.
     /// </summary>
-    private SpawnedNode PlaceNode(TaggedObjectData data, NetworkTag clusterTag, Vector3 desiredPosition, Vector3 clusterCenter, bool isConnector)
+    private SpawnedNode PlaceNode(TaggedObjectData data, NetworkTag clusterTag, Vector3 desiredPosition, Vector3 clusterCenter, bool isConnector, int generationId, Color colonyColor)
     {
         Vector3 position = desiredPosition;
 
@@ -298,7 +381,7 @@ public class NetworkGenerator : MonoBehaviour
             SpawnedNode conflict = FindNodeWithin(position, minNodeSeparation);
             if (conflict == null)
             {
-                return SpawnNode(data, clusterTag, position, clusterCenter, isConnector);
+                return SpawnNode(data, clusterTag, position, clusterCenter, isConnector, generationId, colonyColor);
             }
 
             if (conflict.Data.tags.Intersect(data.tags).Any())
@@ -319,7 +402,7 @@ public class NetworkGenerator : MonoBehaviour
         return null;
     }
 
-    private SpawnedNode SpawnNode(TaggedObjectData data, NetworkTag clusterTag, Vector3 position, Vector3 clusterCenter, bool isConnector)
+    private SpawnedNode SpawnNode(TaggedObjectData data, NetworkTag clusterTag, Vector3 position, Vector3 clusterCenter, bool isConnector, int generationId, Color colonyColor)
     {
         GameObject prefabToUse = data.prefabOverride != null ? data.prefabOverride : nodePrefab;
         GameObject go = Instantiate(prefabToUse, position, Quaternion.identity, transform);
@@ -328,7 +411,7 @@ public class NetworkGenerator : MonoBehaviour
         SpawnedNode node = go.GetComponent<SpawnedNode>();
         if (node == null) node = go.AddComponent<SpawnedNode>();
 
-        node.Initialize(data, clusterTag, clusterCenter);
+        node.Initialize(data, clusterTag, clusterCenter, generationId, colonyColor);
         if (isConnector) node.MarkAsConnector();
         node.ConfigureApproach(approachRadius, approachDwellTime);
         node.ConfigureAppearance(appearDuration);
@@ -337,7 +420,7 @@ public class NetworkGenerator : MonoBehaviour
         if (gaze == null) gaze = go.AddComponent<GazeInfoDisplay>();
         gaze.ConfigureGaze(gazeAngleThreshold, gazeAngleThresholdWhileVisible, gazeMaxDistance, gazeDwellTime, gazeDwellTimeAfterFirstShow);
         gaze.ConfigureText(gazeFontSize, gazeTextColor, gazeFadeDuration, gazeTextOffset, gazeTextMaxWidth, gazeTextWordWrap);
-        gaze.ConfigureBackground(gazeShowBackground, gazeBackgroundColor, gazeBackgroundPadding, gazeBackgroundZOffset);
+        gaze.ConfigureBackground(gazeShowBackground, gazeBackgroundColor, gazeBackgroundPadding, gazeBackgroundZOffset, gazeBackgroundFeatherAmount, gazeBackgroundFeatherShape);
 
         node.OnDwellComplete += HandleNodeApproached;
 
@@ -389,10 +472,16 @@ public class NetworkGenerator : MonoBehaviour
 
         Vector3 desiredPos = originNode.transform.position + direction * connectorDistance;
 
+        // Un conector no es un origen nuevo -- es la MISMA colonia extendiendose, asi
+        // que hereda su color (no genera uno nuevo al azar). Si le toca un "nivel"
+        // propio (nextGenerationId++), asi el conector nunca cuenta como "hermano del
+        // mismo anillo" de nada -- es un nodo suelto, no parte de un anillo circular.
+        int generationId = nextGenerationId++;
+
         // PlaceNode decide aca mismo, en el momento de crear el nodo, si hace falta uno
         // nuevo o si ya hay uno existente con tag en comun para reutilizar/unir --
         // no se pospone para un llamado posterior.
-        SpawnedNode placed = PlaceNode(connectorData, tag, desiredPos, desiredPos, isConnector: true);
+        SpawnedNode placed = PlaceNode(connectorData, tag, desiredPos, desiredPos, isConnector: true, generationId, originNode.ColonyColor);
         if (placed == null) return;
 
         CreateMyceliumLink(originNode, placed);
@@ -450,6 +539,12 @@ public class NetworkGenerator : MonoBehaviour
         {
             if (other == null || other == newNode) continue;
 
+            // Nodos del MISMO anillo/tanda de generacion ya estan conectados via el
+            // centro comun (o via un conector) -- no hace falta (ni se quiere) una
+            // conexion lateral extra entre "hermanos". Si son de tandas distintas
+            // (una anterior o posterior), la conexion lateral si debe crearse.
+            if (other.GenerationId == newNode.GenerationId) continue;
+
             float dist = Vector3.Distance(other.transform.position, newNode.transform.position);
             if (dist > adjacencyLinkRadius) continue;
 
@@ -460,6 +555,45 @@ public class NetworkGenerator : MonoBehaviour
             // aplanar ni registrar puntas.
             CreateMyceliumLink(other, newNode, isChainContinuation: false);
         }
+    }
+
+    // ---------- Color de colonia ----------
+
+    /// <summary>
+    /// Lee el _Color original del material del prefab de micelio, una sola vez, para
+    /// usarlo como base de la variacion aleatoria de cada colonia nueva.
+    /// </summary>
+    private Color GetOriginalMyceliumColor()
+    {
+        if (!originalMyceliumColorCached)
+        {
+            if (myceliumLinkPrefab != null)
+            {
+                MyceliumLink linkComp = myceliumLinkPrefab.GetComponent<MyceliumLink>();
+                if (linkComp != null && linkComp.lineMaterial != null)
+                    originalMyceliumColor = linkComp.lineMaterial.GetColor("_Color");
+            }
+            originalMyceliumColorCached = true;
+        }
+        return originalMyceliumColor;
+    }
+
+    /// <summary>
+    /// Variacion aleatoria (en espacio HSV, no RGB directo -- da resultados mas
+    /// naturales) del color original del micelio, para que cada colonia nueva se vea
+    /// como "el mismo tipo de hongo" pero distinguible de las demas.
+    /// </summary>
+    private Color GenerateColonyColor()
+    {
+        Color baseColor = GetOriginalMyceliumColor();
+        Color.RGBToHSV(baseColor, out float h, out float s, out float v);
+
+        h = Mathf.Repeat(h + Random.Range(-colonyHueVariation, colonyHueVariation), 1f);
+        s = Mathf.Clamp01(s + Random.Range(-colonySaturationVariation, colonySaturationVariation));
+
+        Color result = Color.HSVToRGB(h, s, v);
+        result.a = baseColor.a;
+        return result;
     }
 
     // ---------- Micelio ----------
@@ -479,7 +613,11 @@ public class NetworkGenerator : MonoBehaviour
         if (existingLinks.Contains(key)) return;
         existingLinks.Add(key);
 
-        MyceliumLink newLink = CreateMyceliumLinkAt(a.transform.position, b.transform.position);
+        // Se usa el color de colonia de "b" (el nodo nuevo/destino) -- en los casos
+        // donde ambos ya comparten colonia (centro -> anillo, origen -> conector) da
+        // exactamente lo mismo elegir a o b; en una conexion lateral entre colonias
+        // distintas, esto hace que el hilo "crezca desde" la colonia del nodo nuevo.
+        MyceliumLink newLink = CreateMyceliumLinkAt(a.transform.position, b.transform.position, b.ColonyColor);
         if (newLink == null) return;
 
         if (!isChainContinuation) return; // conexion lateral: no aplana ni registra puntas
@@ -495,7 +633,7 @@ public class NetworkGenerator : MonoBehaviour
         incomingLinkAtNode[b] = newLink;
     }
 
-    private MyceliumLink CreateMyceliumLinkAt(Vector3 from, Vector3 to)
+    private MyceliumLink CreateMyceliumLinkAt(Vector3 from, Vector3 to, Color colorTint)
     {
         if (myceliumLinkPrefab == null) return null;
 
@@ -503,7 +641,7 @@ public class NetworkGenerator : MonoBehaviour
         MyceliumLink link = go.GetComponent<MyceliumLink>();
         if (link == null) link = go.AddComponent<MyceliumLink>();
 
-        link.Build(from, to);
+        link.Build(from, to, colorTint);
         return link;
     }
 }

@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b8ba6d82122698489cca25ddd307a4f, type: 3}
+  m_Name: TO_6_TiabuelaNonaDelfinaRossi
+  m_EditorClassIdentifier: 
+  id: 
+  contentType: 0
+  image: {fileID: 0}
+  audio: {fileID: 0}
+  tags:
+  - {fileID: 11400000, guid: c4ef310736d5d78ea3fd1c80620b5cd0, type: 2}
+  - {fileID: 11400000, guid: 0e0d0539754c83c3a75f806a2bc5ee65, type: 2}
+  - {fileID: 11400000, guid: 5fe4b9de310f4b5fb91e72791db44052, type: 2}
+  - {fileID: 11400000, guid: e5165110af1db6c47ba0493ecd1d3c3d, type: 2}
+  - {fileID: 11400000, guid: d7f6abe03e9fde05a63785da5bf34efa, type: 2}
+  infoText: 'TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6
+    - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6
+    - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6
+    - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6
+    - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6
+    - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6
+    - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6
+    - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - TO 6
+    - TO 6 - TO 6 - TO 6 - TO 6 - TO 6 - '
+  prefabOverride: {fileID: 3369650511715184418, guid: d61868ae313816442a1f7ff808c06986, type: 3}

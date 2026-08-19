@@ -16,9 +16,7 @@ MonoBehaviour:
   contentType: 0
   image: {fileID: 0}
   audio: {fileID: 0}
-  tags:
-  - {fileID: 11400000, guid: a54202bb488aab56029459f16de717a2, type: 2}
-  - {fileID: 11400000, guid: e7623ad8f8b27eab43271515b19882aa, type: 2}
+  tags: []
   infoText: 'TO 14 - TO 14 - TO 14 - TO 14 - TO 14 - TO 14 - TO 14 - TO 14 - TO 14
     - TO 14 - TO 14 - TO 14 - TO 14 - TO 14 - TO 14 - TO 14 - TO 14 - TO 14 - TO
     14 - TO 14 - TO 14 - TO 14 - TO 14 - TO 14 - TO 14 - TO 14 - TO 14 - TO 14 -

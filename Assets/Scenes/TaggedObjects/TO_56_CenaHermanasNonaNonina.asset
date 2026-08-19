@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b8ba6d82122698489cca25ddd307a4f, type: 3}
+  m_Name: TO_56_CenaHermanasNonaNonina
+  m_EditorClassIdentifier: 
+  id: 
+  contentType: 0
+  image: {fileID: 0}
+  audio: {fileID: 0}
+  tags:
+  - {fileID: 11400000, guid: f96c83f685e61b349b87efa88576dd9a, type: 2}
+  - {fileID: 11400000, guid: 567978b044d65db49904c38c11c7483a, type: 2}
+  - {fileID: 11400000, guid: d8d95706ea04a5149861bf55ee2b7dd7, type: 2}
+  - {fileID: 11400000, guid: cbbb2d7ee1639adfe4743fa0a001876e, type: 2}
+  - {fileID: 11400000, guid: 8d876cdcda13fcb48ba6dda59340965d, type: 2}
+  - {fileID: 11400000, guid: 4ecdc7893093eb1b31f3642e266ab037, type: 2}
+  - {fileID: 11400000, guid: c379902776de6643d8c90d6777a92674, type: 2}
+  - {fileID: 11400000, guid: 946b1952e32f933f27146232a88b46db, type: 2}
+  - {fileID: 11400000, guid: 4f78947c561c9a3ba88da486edcd4007, type: 2}
+  - {fileID: 11400000, guid: 5fe4b9de310f4b5fb91e72791db44052, type: 2}
+  - {fileID: 11400000, guid: c6160798ebd05e4499122e0e7ae897db, type: 2}
+  infoText: (Descripcion pendiente -- CenaHermanasNonaNonina)
+  prefabOverride: {fileID: 100000, guid: 70238d4a6e0ebacf8accb6bc1bc56780, type: 3}

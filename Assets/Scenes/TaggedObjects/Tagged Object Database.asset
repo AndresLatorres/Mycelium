@@ -13,6 +13,30 @@ MonoBehaviour:
   m_Name: Tagged Object Database
   m_EditorClassIdentifier: 
   allObjects:
+  - {fileID: 11400000, guid: bc62a07611a2a228610dfa21a8441b7d, type: 2}
+  - {fileID: 11400000, guid: c77b2eb08068da3c6d982746cdfd4c33, type: 2}
+  - {fileID: 11400000, guid: fb20837d496c8fbb9703eeb9a5beb0ad, type: 2}
+  - {fileID: 11400000, guid: d784ec7c3eb3193061bacc914cd8051d, type: 2}
+  - {fileID: 11400000, guid: be5c99b70437f65ae507b7a80da2043a, type: 2}
+  - {fileID: 11400000, guid: f093c468ded7ab4147b07e144f9fafe1, type: 2}
+  - {fileID: 11400000, guid: 6a756110e5b6e858e905795444bd3fb7, type: 2}
+  - {fileID: 11400000, guid: 0f24309d6cc4884465c6b46b488abd70, type: 2}
+  - {fileID: 11400000, guid: 957a8c570fd7ca31b4abdd49d8caef2a, type: 2}
+  - {fileID: 11400000, guid: 32825e3366a6cf14af4315bec069c923, type: 2}
+  - {fileID: 11400000, guid: 6177a2b892fe6efc163e8b01d5c81d22, type: 2}
+  - {fileID: 11400000, guid: ef5b8d4dfcaf00dd676c82dfd5a7eac1, type: 2}
+  - {fileID: 11400000, guid: c8d6d5aae67bc60d26a1b78fde51c3ea, type: 2}
+  - {fileID: 11400000, guid: f6da4488aa9cbd3cd8527b43111e26d5, type: 2}
+  - {fileID: 11400000, guid: 7c6cf89b715fff649e4522c2ebd5ac1b, type: 2}
+  - {fileID: 11400000, guid: 9cdc3e27467e6f510486c7982c47d597, type: 2}
+  - {fileID: 11400000, guid: ecb0ed6681e025af5537bd7fd9c41dfa, type: 2}
+  - {fileID: 11400000, guid: fde8c5e07b7f67e28fc3e3e438d8663d, type: 2}
+  - {fileID: 11400000, guid: 61b1d3ff2c9cee617708471c62ec16a3, type: 2}
+  - {fileID: 11400000, guid: eb2e5e6396934d24294b44b0402a96e6, type: 2}
+  - {fileID: 11400000, guid: 17ea9b824e5bb56640152af2e1719193, type: 2}
+  - {fileID: 11400000, guid: b2089ac156d52aa1f2a6f6e3e2477ac2, type: 2}
+  - {fileID: 11400000, guid: fc78ee50d5e6a2557f7dbcdaed25d4d6, type: 2}
+  - {fileID: 11400000, guid: 94d67ef3cbf9cc47945b6f2c217a3b11, type: 2}
   - {fileID: 11400000, guid: 66aede72f03741540b9aa3b044af351e, type: 2}
   - {fileID: 11400000, guid: 3864de6caf8e8344e9c49d787c3f46a5, type: 2}
   - {fileID: 11400000, guid: e49f0f20ad239444181dc9ef5a1a3768, type: 2}

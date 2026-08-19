@@ -11,5 +11,8 @@ public class NetworkTag : ScriptableObject
 {
     public string tagName;
 
+    [Tooltip("Opcional: si se asigna, este objeto se instancia justo en el CENTRO de cualquier cluster nuevo generado con este tag (el inicial incluido), en vez de dejar el centro vacio. Si se deja vacio, el cluster funciona como siempre (sin nodo en el centro).")]
+    public TaggedObjectData centerNodeOverride;
+
     public override string ToString() => string.IsNullOrEmpty(tagName) ? name : tagName;
 }

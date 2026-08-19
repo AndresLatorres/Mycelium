@@ -22,6 +22,22 @@ public class SpawnedNode : MonoBehaviour
     public NetworkTag ClusterTag { get; private set; }
 
     /// <summary>
+    /// Todos los nodos ubicados dentro del MISMO llamado a GenerateCluster comparten
+    /// este numero (un "nivel"/tanda de generacion). Se usa para no conectar hermanos
+    /// del mismo anillo entre si (ya estan conectados via el centro comun) sin afectar
+    /// las conexiones con nodos de una tanda anterior o posterior.
+    /// </summary>
+    public int GenerationId { get; private set; }
+
+    /// <summary>
+    /// Color de la "colonia" a la que pertenece este nodo -- se hereda del nodo/conector
+    /// que originó el cluster (o se genera nuevo, con una variacion aleatoria de tono,
+    /// si es un origen nuevo sin centro). Se usa para teñir el micelio de este nodo,
+    /// asi cada colonia del plato de petri se ve visualmente distinta.
+    /// </summary>
+    public Color ColonyColor { get; private set; }
+
+    /// <summary>
     /// Centro del grupo/circulo al que pertenece este nodo (o su propia posicion si es un
     /// conector suelto). Se usa para calcular "hacia afuera" correctamente al generar el
     /// siguiente conector, en vez de usar el origen general del NetworkGenerator.
@@ -54,11 +70,13 @@ public class SpawnedNode : MonoBehaviour
     private SpriteRenderer spriteRenderer;
     private AudioSource audioSource;
 
-    public void Initialize(TaggedObjectData data, NetworkTag clusterTag, Vector3 clusterCenter)
+    public void Initialize(TaggedObjectData data, NetworkTag clusterTag, Vector3 clusterCenter, int generationId, Color colonyColor)
     {
         Data = data;
         ClusterTag = clusterTag;
         ClusterCenter = clusterCenter;
+        GenerationId = generationId;
+        ColonyColor = colonyColor;
         ApplyVisuals();
         StartCoroutine(AppearRoutine());
     }

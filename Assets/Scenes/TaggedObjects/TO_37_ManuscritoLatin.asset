@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b8ba6d82122698489cca25ddd307a4f, type: 3}
+  m_Name: TO_37_ManuscritoLatin
+  m_EditorClassIdentifier: 
+  id: 
+  contentType: 0
+  image: {fileID: 0}
+  audio: {fileID: 0}
+  tags:
+  - {fileID: 11400000, guid: 80e7f27c652667e3d7de50ed81d74e0a, type: 2}
+  infoText: (Descripcion pendiente -- ManuscritoLAtin)
+  prefabOverride: {fileID: 100000, guid: d7dd6c83f7b6cbb268ece0268b9a1e38, type: 3}

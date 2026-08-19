@@ -58,6 +58,17 @@ public class FloatingImageEffect : MonoBehaviour
     [Range(0f, 0.5f)] public float edgeFeather = 0.15f;
     [Range(0f, 1f)] public float edgeShape = 1f;
 
+    [Header("Desvanecido por distancia (se achica y se hunde hacia el piso al alejarse)")]
+    public bool distanceFadeEnabled = true;
+    [Tooltip("Distancia al jugador a partir de la cual empieza a achicarse/desvanecerse. Mas cerca que esto, tamano y opacidad normales")]
+    public float fadeStartDistance = 15f;
+    [Tooltip("Distancia a la que queda completamente achicado (escala 0) y transparente")]
+    public float fadeEndDistance = 30f;
+    [Tooltip("Altura de mundo (Y) hacia la que se hunde a medida que se aleja -- normalmente el nivel del piso")]
+    public float fadeGroundY = 0f;
+    [Tooltip("Alpha del sprite cuando esta cerca, antes de aplicar el desvanecido (normalmente 1)")]
+    [Range(0f, 1f)] public float baseAlpha = 1f;
+
     private struct GhostData
     {
         public SpriteRenderer renderer;
@@ -65,14 +76,26 @@ public class FloatingImageEffect : MonoBehaviour
         public float phase;             // fase propia, independiente del original
         public float speedMultiplier;   // velocidad de flote propia
         public float amplitudeMultiplier; // amplitud de flote propia
+        public float baseAlpha;         // alpha propio (ghostAlpha * falloff^i), antes del desvanecido por distancia
     }
 
     private SpriteRenderer spriteRenderer;
     private Vector3 basePosition;
     private float phaseOffset;
 
+    // Escala original del prefab, capturada en Awake -- ANTES de que SpawnedNode la
+    // anime desde 0 en su aparicion (Awake corre durante Instantiate, antes de que
+    // NetworkGenerator llame a SpawnedNode.Initialize). Si se capturara en Start no
+    // hay garantia de que corra antes de esa animacion.
+    private Vector3 baseScale;
+
     private readonly List<GhostData> ghosts = new List<GhostData>();
     private bool ghostsBuilt = false;
+
+    private void Awake()
+    {
+        baseScale = transform.localScale;
+    }
 
     private void Start()
     {
@@ -91,6 +114,7 @@ public class FloatingImageEffect : MonoBehaviour
 
     private void LateUpdate()
     {
+        EnsureTarget();
         if (faceTarget) UpdateFacing();
         UpdateFloatMotion();
         UpdateGhosts();
@@ -98,26 +122,32 @@ public class FloatingImageEffect : MonoBehaviour
 
     // ---------- Mirar al jugador ----------
 
+    /// <summary>
+    /// Resuelve "target" una sola vez para todo el frame (facing Y desvanecido por
+    /// distancia lo necesitan, incluso si faceTarget esta desactivado).
+    /// </summary>
+    private void EnsureTarget()
+    {
+        if (target != null) return;
+
+        // La camara es la referencia correcta para un billboard (es literalmente el
+        // punto de vista al que tiene que mirar). Usar el Player como respaldo si no
+        // hay camara -- pero OJO: si el pivote del Player esta en los pies (comun con
+        // CharacterController), el sprite terminaria inclinandose hacia abajo.
+        if (Camera.main != null)
+        {
+            target = Camera.main.transform;
+        }
+        else
+        {
+            GameObject playerGO = GameObject.FindGameObjectWithTag("Player");
+            if (playerGO != null) target = playerGO.transform;
+        }
+    }
+
     private void UpdateFacing()
     {
-        if (target == null)
-        {
-            // La camara es la referencia correcta para un billboard (es literalmente el
-            // punto de vista al que tiene que mirar). Usar el Player como respaldo si no
-            // hay camara -- pero OJO: si el pivote del Player esta en los pies (comun con
-            // CharacterController), el sprite terminaria inclinandose hacia abajo.
-            if (Camera.main != null)
-            {
-                target = Camera.main.transform;
-            }
-            else
-            {
-                GameObject playerGO = GameObject.FindGameObjectWithTag("Player");
-                if (playerGO != null) target = playerGO.transform;
-                else return;
-            }
-        }
-
+        if (target == null) return;
         transform.rotation = ComputeFacingRotation(transform.position, rotationWobbleSpeed, phaseOffset, rotationWobbleDegrees);
     }
 
@@ -141,7 +171,38 @@ public class FloatingImageEffect : MonoBehaviour
 
     private void UpdateFloatMotion()
     {
-        transform.position = basePosition + ComputeFloatOffset(floatSpeed, phaseOffset, floatAmplitude, swaySpeed, swayAmplitude);
+        Vector3 floatingPos = basePosition + ComputeFloatOffset(floatSpeed, phaseOffset, floatAmplitude, swaySpeed, swayAmplitude);
+        float fadeT = ComputeDistanceFadeT(floatingPos);
+
+        // Se hunde SOLO en Y hacia fadeGroundY -- el X/Z no se toca, asi que se ve
+        // como si se hundiera derecho hacia el piso en su propio lugar, no como si
+        // se deslizara hacia otro lado.
+        Vector3 finalPos = floatingPos;
+        finalPos.y = Mathf.Lerp(floatingPos.y, fadeGroundY, fadeT);
+        transform.position = finalPos;
+
+        transform.localScale = baseScale * Mathf.Lerp(1f, 0f, fadeT);
+
+        if (spriteRenderer != null)
+        {
+            Color c = spriteRenderer.color;
+            c.a = baseAlpha * (1f - fadeT);
+            spriteRenderer.color = c;
+        }
+    }
+
+    /// <summary>
+    /// 0 = cerca, tamano/opacidad normal. 1 = mas alla de fadeEndDistance, completamente
+    /// achicado/hundido/transparente. Interpola entre fadeStartDistance y fadeEndDistance.
+    /// </summary>
+    private float ComputeDistanceFadeT(Vector3 fromPosition)
+    {
+        if (!distanceFadeEnabled || target == null) return 0f;
+
+        float dist = Vector3.Distance(fromPosition, target.position);
+        if (fadeEndDistance <= fadeStartDistance) return dist >= fadeStartDistance ? 1f : 0f;
+
+        return Mathf.Clamp01((dist - fadeStartDistance) / (fadeEndDistance - fadeStartDistance));
     }
 
     private Vector3 ComputeFloatOffset(float fSpeed, float fPhase, float fAmplitude, float sSpeed, float sAmplitude)
@@ -173,8 +234,9 @@ public class FloatingImageEffect : MonoBehaviour
             sr.sharedMaterial = spriteRenderer.sharedMaterial; // hereda el shader de bordes suaves si se asigno
             sr.sortingOrder = spriteRenderer.sortingOrder - (i + 1);
 
+            float ghostBaseAlpha = ghostAlpha * Mathf.Pow(ghostAlphaFalloff, i);
             Color c = spriteRenderer.color;
-            c.a = ghostAlpha * Mathf.Pow(ghostAlphaFalloff, i);
+            c.a = ghostBaseAlpha;
             sr.color = c;
 
             ghosts.Add(new GhostData
@@ -183,7 +245,8 @@ public class FloatingImageEffect : MonoBehaviour
                 baseOffset = Random.insideUnitSphere * ghostSpreadRadius,
                 phase = Random.Range(0f, Mathf.PI * 2f),
                 speedMultiplier = 1f + Random.Range(-ghostSpeedVariation, ghostSpeedVariation),
-                amplitudeMultiplier = 1f + Random.Range(-ghostAmplitudeVariation, ghostAmplitudeVariation)
+                amplitudeMultiplier = 1f + Random.Range(-ghostAmplitudeVariation, ghostAmplitudeVariation),
+                baseAlpha = ghostBaseAlpha
             });
         }
     }
@@ -206,8 +269,17 @@ public class FloatingImageEffect : MonoBehaviour
                 floatSpeed * ghost.speedMultiplier, ghost.phase, floatAmplitude * ghost.amplitudeMultiplier,
                 swaySpeed * ghost.speedMultiplier, swayAmplitude * ghost.amplitudeMultiplier);
 
-            Vector3 ghostPosition = ghostBase + floatOffset;
+            Vector3 ghostFloatingPos = ghostBase + floatOffset;
+            float fadeT = ComputeDistanceFadeT(ghostFloatingPos);
+
+            Vector3 ghostPosition = ghostFloatingPos;
+            ghostPosition.y = Mathf.Lerp(ghostFloatingPos.y, fadeGroundY, fadeT);
             ghost.renderer.transform.position = ghostPosition;
+            ghost.renderer.transform.localScale = baseScale * Mathf.Lerp(1f, 0f, fadeT);
+
+            Color ghostColor = ghost.renderer.color;
+            ghostColor.a = ghost.baseAlpha * (1f - fadeT);
+            ghost.renderer.color = ghostColor;
 
             if (faceTarget && target != null)
             {

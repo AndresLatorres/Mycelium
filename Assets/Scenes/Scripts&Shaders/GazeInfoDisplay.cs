@@ -58,6 +58,12 @@ public class GazeInfoDisplay : MonoBehaviour
     public float backgroundPadding = 0.15f;
     [Tooltip("Cuanto se aleja el fondo de la camara respecto al texto, para que no se pisen (z-fighting)")]
     public float backgroundZOffset = 0.02f;
+    [Tooltip("Cuanto se difumina el borde del fondo (0 = corte duro tipo rectangulo, 0.5 = maximo, difumina desde el centro)")]
+    [Range(0f, 0.5f)]
+    public float backgroundFeatherAmount = 0.3f;
+    [Tooltip("Forma del difuminado (0 = rectangular con esquinas suaves, 1 = ovalada)")]
+    [Range(0f, 1f)]
+    public float backgroundFeatherShape = 0.35f;
 
     private SpawnedNode node;
     private Transform cameraTransform;
@@ -71,6 +77,7 @@ public class GazeInfoDisplay : MonoBehaviour
     private SpriteRenderer backgroundRenderer;
     private Coroutine fadeCoroutine;
     private static Sprite whitePixelSprite;
+    private static Shader softEdgeShader;
 
     private void Start()
     {
@@ -114,7 +121,7 @@ public class GazeInfoDisplay : MonoBehaviour
     /// <summary>
     /// Igual patron: se pisa salvo Use Custom Settings.
     /// </summary>
-    public void ConfigureBackground(bool show, Color color, float padding, float zOffset)
+    public void ConfigureBackground(bool show, Color color, float padding, float zOffset, float featherAmount, float featherShape)
     {
         if (useCustomSettings) return;
 
@@ -122,6 +129,8 @@ public class GazeInfoDisplay : MonoBehaviour
         backgroundColor = color;
         backgroundPadding = padding;
         backgroundZOffset = zOffset;
+        backgroundFeatherAmount = featherAmount;
+        backgroundFeatherShape = featherShape;
     }
 
     private void Update()
@@ -218,6 +227,17 @@ public class GazeInfoDisplay : MonoBehaviour
         backgroundRenderer = bgObject.AddComponent<SpriteRenderer>();
         backgroundRenderer.sprite = GetWhitePixelSprite();
         backgroundRenderer.color = new Color(backgroundColor.r, backgroundColor.g, backgroundColor.b, 0f); // arranca invisible, el fade lo sube junto con el texto
+
+        // Mismo shader que usan los nodos con imagen para difuminar el borde del sprite
+        // (mascara radial/ovalada en vez de un rectangulo de corte duro).
+        if (softEdgeShader == null) softEdgeShader = Shader.Find("Network/SoftEdgeSprite");
+        if (softEdgeShader != null)
+        {
+            Material bgMaterial = new Material(softEdgeShader);
+            bgMaterial.SetFloat("_FeatherAmount", backgroundFeatherAmount);
+            bgMaterial.SetFloat("_FeatherShape", backgroundFeatherShape);
+            backgroundRenderer.material = bgMaterial;
+        }
 
         // Dimensiona el fondo al tamano real del texto (mas el padding), usando los
         // bounds locales que ya calculo TextMeshPro para el contenido actual.

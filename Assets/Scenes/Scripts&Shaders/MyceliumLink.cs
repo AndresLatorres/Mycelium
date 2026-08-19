@@ -70,13 +70,15 @@ public class MyceliumLink : MonoBehaviour
 
     /// <summary>
     /// Genera y anima el camino entre "from" y "to". Llamar una sola vez despues de instanciar.
+    /// "colorTint" tiñe el hilo (y sus ramas) -- lo usa NetworkGenerator para que cada
+    /// "colonia" del plato de petri se vea de un color ligeramente distinto.
     /// </summary>
-    public void Build(Vector3 from, Vector3 to)
+    public void Build(Vector3 from, Vector3 to, Color colorTint)
     {
         float seed = Random.Range(0f, 1000f);
         List<Vector3> mainPoints = GenerateOrganicPath(from, to, seed);
 
-        mainLine = CreateLineRenderer("MainThread", lineWidth);
+        mainLine = CreateLineRenderer("MainThread", lineWidth, colorTint);
         mainLine.positionCount = mainPoints.Count;
         mainLine.SetPositions(mainPoints.ToArray());
         ConfigureLineMaterial(mainLine, ComputePathLength(mainPoints), lineWidth);
@@ -84,7 +86,7 @@ public class MyceliumLink : MonoBehaviour
 
         for (int b = 0; b < branchCount; b++)
         {
-            CreateBranch(mainPoints, seed + b * 17f);
+            CreateBranch(mainPoints, seed + b * 17f, colorTint);
         }
 
         StartCoroutine(GrowRoutine());
@@ -124,7 +126,7 @@ public class MyceliumLink : MonoBehaviour
         return points;
     }
 
-    private void CreateBranch(List<Vector3> mainPoints, float seed)
+    private void CreateBranch(List<Vector3> mainPoints, float seed, Color colorTint)
     {
         if (mainPoints.Count < 5) return;
 
@@ -153,7 +155,7 @@ public class MyceliumLink : MonoBehaviour
             branchPoints.Add(basePos + perpendicular * noise * wobbleAmount * 0.5f * t);
         }
 
-        LineRenderer branchLine = CreateLineRenderer("Branch", branchWidth);
+        LineRenderer branchLine = CreateLineRenderer("Branch", branchWidth, colorTint);
         branchLine.positionCount = branchPoints.Count;
         branchLine.SetPositions(branchPoints.ToArray());
         ConfigureLineMaterial(branchLine, ComputePathLength(branchPoints), branchWidth);
@@ -175,7 +177,7 @@ public class MyceliumLink : MonoBehaviour
         lr.material.SetFloat("_LineWidthWorld", width);
     }
 
-    private LineRenderer CreateLineRenderer(string childName, float width)
+    private LineRenderer CreateLineRenderer(string childName, float width, Color colorTint)
     {
         GameObject go = new GameObject(childName);
         go.transform.SetParent(transform, worldPositionStays: true);
@@ -192,6 +194,7 @@ public class MyceliumLink : MonoBehaviour
         Material matInstance = new Material(lineMaterial);
         matInstance.SetFloat("_GrowAmount", 0f);
         matInstance.SetFloat("_TipCapRounded", 1f); // por defecto, punta redondeada mientras crece
+        matInstance.SetColor("_Color", colorTint); // tiñe el hilo con el color de su colonia
         lr.material = matInstance;
 
         return lr;

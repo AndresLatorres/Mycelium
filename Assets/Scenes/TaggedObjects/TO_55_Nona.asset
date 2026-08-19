@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b8ba6d82122698489cca25ddd307a4f, type: 3}
+  m_Name: TO_55_Nona
+  m_EditorClassIdentifier: 
+  id: 
+  contentType: 0
+  image: {fileID: 0}
+  audio: {fileID: 0}
+  tags:
+  - {fileID: 11400000, guid: 4ecdc7893093eb1b31f3642e266ab037, type: 2}
+  infoText: "...Hoy no es un d\xEDa apacible para empezar mi historia. \nLlueve esta
+    frio y ni miras de un rayito de sol a pesar de que estamos a un mes de empezar
+    la primavera. \nY ser\xE1 la 85ava primavera desde que me asome a este mundo
+    y que luego me resultar\xEDa tan variable  vivirlo. nac\xED un 23 de setiembre
+    de 1940, reci\xE9n empezada la segunda guerra mundial. \n\r\nMe llamo Lina Julia
+    Bettucci Rossi, naci en Buenos Aires Argentina el 23 de setiembre de 1940."
+  prefabOverride: {fileID: 100000, guid: 97431af3563cf40c29fca894d3d43258, type: 3}

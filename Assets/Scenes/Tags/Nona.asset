@@ -11,5 +11,6 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 01d8950cec1009c25984f1be1f49bfd2, type: 3}
   m_Name: Nona
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   tagName: Nona
+  centerNodeOverride: {fileID: 11400000, guid: fc78ee50d5e6a2557f7dbcdaed25d4d6, type: 2}
